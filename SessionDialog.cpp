@@ -27,6 +27,7 @@
 #include "stdhdrs.h"
 #include "vncviewer.h"
 #include "SessionDialog.h"
+#include "AboutBox.h"
 #include "Exception.h"
 
 #define SESSION_MRU_KEY_NAME _T("Software\\ORL\\VNCviewer\\MRU")
@@ -107,6 +108,11 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
 				_this->m_pOpt->DoDialog();
 				return TRUE;
 			}
+		case IDD_APP_ABOUT:
+      {
+        ShowAboutBox();
+        return TRUE;
+      }
 		}
 		break;
 
