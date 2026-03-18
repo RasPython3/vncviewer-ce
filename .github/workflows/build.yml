@@ -27,11 +27,9 @@ jobs:
         VER=$(grep -E PRODUCTVERSION res/vncviewer.rc | sed -E 's/^.* ([0-9]+),([0-9]+),([0-9]+),((?:[1-9][0-9]*)?)/\1.\2.\3.\4/g' | sed s/[.]$//g)
         make
         echo "exe=vncviewer-ce-${VER}.exe" >> $GITHUB_OUTPUT
-        mv vncviewer.exe vncviewer-ce-${VER}.exe
+        cp vncviewer.exe vncviewer-ce-${VER}.exe
 
-    - name: Create release and upload assets
-      uses: softprops/action-gh-release@v2
-      if: github.ref_type == 'tag'
+    - name: Upload executable
+      uses: actions/upload-artifact@v4
       with:
-        files: |
-          ${{ steps.build.outputs.exe }}
+          path: ${{ steps.build.outputs.exe }}
