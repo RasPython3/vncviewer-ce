@@ -24,7 +24,7 @@ jobs:
       id: build
       run: |
         export PATH=$PATH:/opt/cegcc/bin
-        VER=$(grep -E PRODUCTVERSION res/vncviewer.rc | sed -E 's/^.* ([0-9]+),([0-9]+),([0-9]+),((?:[1-9][0-9]*)?)/\1.\2.\3.\4/g' | sed s/[.]$//g)
+        VER=$(grep -E '^#define\s+VERSION\s+' version.h | sed -E 's/.+\"(.+)\"/\1/g')
         make
         echo "exe=vncviewer-ce-${VER}.exe" >> $GITHUB_OUTPUT
         cp vncviewer.exe vncviewer-ce-${VER}.exe
