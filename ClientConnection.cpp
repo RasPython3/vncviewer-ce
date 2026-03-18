@@ -52,7 +52,7 @@ const rfbPixelFormat vnc8bitFormat = {8, 8, 1, 1, 7,7,3, 0,3,6,0,0};
 const rfbPixelFormat vnc16bitFormat = {16, 16, 1, 1, 63, 31, 31, 0,6,11,0,0};
 const rfbPixelFormat vnc32bitFormat = {32, 24, 1, 1, 255, 255, 255, 0,8,16,0,0};
 
-#ifdef __MINGW32CE__
+#ifndef __MINGW32CE__
 static LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 #endif
 
