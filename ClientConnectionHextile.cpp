@@ -96,12 +96,13 @@ void ClientConnection::HandleHextileEncoding##bpp(int rx, int ry, int rw, int rh
             ptr = (CARD8 *)m_netbuf;                                          \
                                                                               \
             if (subencoding & rfbHextileSubrectsColoured) {                   \
-				                                                              \
-                ReadExact( m_netbuf, nSubrects * (2 + (bpp / 8)));              \
+                                                                              \
+              ReadExact( m_netbuf, nSubrects * (2 + (bpp / 8)));              \
                                                                               \
                 for (i = 0; i < nSubrects; i++) {                             \
-                    fgcolor = COLOR_FROM_PIXEL##bpp##_ADDRESS(ptr);           \
-					ptr += (bpp/8);                                           \
+                    memcpy(&fg, ptr, bpp/8);                                  \
+                    fgcolor = COLOR_FROM_PIXEL##bpp##_ADDRESS(&fg);           \
+                    ptr += (bpp/8);                                           \
                     sx = *ptr >> 4;                                           \
                     sy = *ptr++ & 0x0f;                                       \
                     sw = (*ptr >> 4) + 1;                                     \

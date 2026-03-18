@@ -92,30 +92,39 @@ BEGIN
     CONTROL         108,IDC_STATIC,"Static",SS_BITMAP,7,12,21,20
 END
 
-IDD_OPTIONDIALOG DIALOG DISCARDABLE  0, 0, 291, 78
+IDD_OPTIONDIALOG DIALOG DISCARDABLE  0, 0, 291, 120
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Connection Options..."
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Request shared session",IDC_SHARED,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,114,49,91,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,114,38,91,10
     CONTROL         "Hextile",IDC_HEXTILERADIO,"Button",BS_AUTORADIOBUTTON,
                     15,18,37,10
     CONTROL         "CoRRE",IDC_CORRERADIO,"Button",BS_AUTORADIOBUTTON,15,28,
                     40,10
     CONTROL         "RRE",IDC_RRERADIO,"Button",BS_AUTORADIOBUTTON,15,38,31,
                     10
-    CONTROL         "Raw",IDC_RAWRADIO,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,15,48,31,10
+    CONTROL         "Raw",IDC_RAWRADIO,"Button",BS_AUTORADIOBUTTON,15,48,31,
+                    10
     CONTROL         "Allow CopyRect encoding",ID_SESSION_SET_CRECT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,114,7,97,10
     CONTROL         "Deiconify on Bell",IDC_BELLDEICONIFY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,114,18,97,8
     CONTROL         "Swap mouse buttons 2 and 3",ID_SESSION_SWAPMOUSE,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,114,27,108,10
-    CONTROL         "Restrict pixels to 8-bit (for slow networks)",
-                    IDC_8BITCHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,
-                    38,143,10
+    //CONTROL         "Restrict pixels to 8-bit (for slow networks)",
+    //                IDC_8BITCHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,
+    //                38,143,10
+    LTEXT           "Preferred color depth",IDC_STATIC,15,68,100,10
+    CONTROL         "No preference",IDC_DEPTH_UNSET,"Button",BS_AUTORADIOBUTTON,
+                    15,78,60,10
+    CONTROL         "8 bit",IDC_DEPTH8,"Button",BS_AUTORADIOBUTTON,15,88,
+                    50,10
+    CONTROL         "16 bit",IDC_DEPTH16,"Button",BS_AUTORADIOBUTTON,15,98,
+                    50,10
+    CONTROL         "32 bit",IDC_DEPTH32,"Button",BS_AUTORADIOBUTTON,15,108,
+                    50,10
     DEFPUSHBUTTON   "OK",IDOK,234,7,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,234,23,50,14
     CONTROL         "CopyRect",IDC_CRECTRADIO,"Button",BS_AUTORADIOBUTTON | 
@@ -123,7 +132,9 @@ BEGIN
     CONTROL         "RBS",IDC_RBSRADIO,"Button",BS_AUTORADIOBUTTON | NOT 
                     WS_VISIBLE,69,29,31,10
     CONTROL         "View only",IDC_VIEWONLY,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,114,60,46,10
+                    WS_TABSTOP,114,50,46,10
+    CONTROL         "Use temporary buffer",IDC_USETEMP,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,114,60,90,10
     LTEXT           "Preferred encoding",IDC_STATIC,15,7,83,10
 END
 
@@ -206,9 +217,13 @@ END
 
 IDD_SESSION_DLG DLGINIT
 BEGIN
+#if 0
     IDC_HOSTNAME_EDIT, 0x403, 1, 0
-"\000" 
+"\000"
     0
+#else
+    IDC_HOSTNAME_EDIT, 0x403, 1, "\0"
+#endif
 END
 
 

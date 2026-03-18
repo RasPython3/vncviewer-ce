@@ -151,12 +151,12 @@ private:
 	char *m_netbuf;
 	int m_netbufsize;
 	omni_mutex m_bufferMutex, 
-		m_bitmapdcMutex,  m_clipMutex,
+		m_bitmapdcMutex, m_tempbitmapdcMutex, m_clipMutex,
         m_readMutex, m_writeMutex;
 
 	// Bitmap for local copy of screen, and DC for writing to it.
-	HBITMAP m_hBitmap;
-	HDC		m_hBitmapDC;
+	HBITMAP m_hBitmap, m_hTempBitmap;
+	HDC		m_hBitmapDC, m_hTempBitmapDC;
 	HPALETTE m_hPalette;
 
 	// Keyboard mapper
@@ -208,19 +208,24 @@ private:
 
 // read a pixel from the given address, and return a color value
 #define COLOR_FROM_PIXEL8_ADDRESS(p) (PALETTERGB( \
-                (int) (((*(CARD8 *)p >> rs) & rm) * 255 / rm), \
-                (int) (((*(CARD8 *)p >> gs) & gm) * 255 / gm), \
-                (int) (((*(CARD8 *)p >> bs) & bm) * 255 / bm) ))
+                (int) (((*(CARD8 *)(p) >> rs) & rm) * 255 / rm), \
+                (int) (((*(CARD8 *)(p) >> gs) & gm) * 255 / gm), \
+                (int) (((*(CARD8 *)(p) >> bs) & bm) * 255 / bm) ))
 
 #define COLOR_FROM_PIXEL16_ADDRESS(p) (PALETTERGB( \
-                (int) ((( *(CARD16 *)p >> rs) & rm) * 255 / rm), \
-                (int) ((( *(CARD16 *)p >> gs) & gm) * 255 / gm), \
-                (int) ((( *(CARD16 *)p >> bs) & bm) * 255 / bm) ))
+                (int) ((( *(CARD16 *)(p) >> rs) & rm) * 255 / rm), \
+                (int) ((( *(CARD16 *)(p) >> gs) & gm) * 255 / gm), \
+                (int) ((( *(CARD16 *)(p) >> bs) & bm) * 255 / bm) ))
+
+#define COLOR_FROM_PIXEL24_ADDRESS(p) (PALETTERGB( \
+                (int) (*((CARD8 *)(p)    )), \
+                (int) (*((CARD8 *)(p) + 1)), \
+                (int) (*((CARD8 *)(p) + 2)) ))
 
 #define COLOR_FROM_PIXEL32_ADDRESS(p) (PALETTERGB( \
-                (int) ((( *(CARD32 *)p >> rs) & rm) * 255 / rm), \
-                (int) ((( *(CARD32 *)p >> gs) & gm) * 255 / gm), \
-                (int) ((( *(CARD32 *)p >> bs) & bm) * 255 / bm) ))
+                (int) ((( *(CARD32 *)(p) >> rs) & rm) * 255 / rm), \
+                (int) ((( *(CARD32 *)(p) >> gs) & gm) * 255 / gm), \
+                (int) ((( *(CARD32 *)(p) >> bs) & bm) * 255 / bm) ))
 
 // The following may be faster if you already have a pixel value of the appropriate size
 #define COLOR_FROM_PIXEL8(p) (PALETTERGB( \
@@ -233,10 +238,15 @@ private:
                 (int) ((( p >> gs) & gm) * 255 / gm), \
                 (int) ((( p >> bs) & bm) * 255 / bm) ))
 
+#define COLOR_FROM_PIXEL24(p) (PALETTERGB( \
+                (int) (( (p >> rs) & rm) * 255 / rm), \
+                (int) (( (p >> gs) & gm) * 255 / gm), \
+                (int) (( (p >> bs) & bm) * 255 / bm) ))
+
 #define COLOR_FROM_PIXEL32(p) (PALETTERGB( \
-                (int) (((p >> rs) & rm) * 255 / rm), \
-                (int) (((p >> gs) & gm) * 255 / gm), \
-                (int) (((p >> bs) & bm) * 255 / bm) ))
+                (int) ((( p >> rs) & rm) * 255 / rm), \
+                (int) ((( p >> gs) & gm) * 255 / gm), \
+                (int) ((( p >> bs) & bm) * 255 / bm) ))
 
 
 #ifdef UNDER_CE
@@ -252,7 +262,7 @@ private:
 		for (int k = y; k < y+h; k++) {											\
 			for (int j = x; j < x+w; j++) {										\
                     pix = *p;													\
-                    SETPIXEL(m_hBitmapDC, j,k, COLOR_FROM_PIXEL##bpp##(pix));	\
+                    SETPIXEL(m_hBitmapDC, j,k, COLOR_FROM_PIXEL##bpp (pix));	\
 					p++;														\
 			}																	\
 		}																		\

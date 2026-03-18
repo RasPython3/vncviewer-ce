@@ -48,7 +48,6 @@ void ClientConnection::ReadRawRect(rfbFramebufferUpdateRectHeader *pfburh) {
 	case 16:
 		SETPIXELS(16, pfburh->r.x, pfburh->r.y, pfburh->r.w, pfburh->r.h)
 		break;
-	case 24:
 	case 32:
 		SETPIXELS(32, pfburh->r.x, pfburh->r.y, pfburh->r.w, pfburh->r.h)            
 		break;

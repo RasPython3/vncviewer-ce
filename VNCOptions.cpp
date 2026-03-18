@@ -35,12 +35,14 @@ VNCOptions::VNCOptions()
 		m_UseEnc[i] = true;
 	
 	m_ViewOnly = false;
-	m_Use8Bit = false;
+	// m_Use8Bit = false;
+  m_PreferredDepth = 0;
 	m_PreferredEncoding = rfbEncodingHextile;
 	m_SwapMouse = false;
 	m_Emul3Buttons = false;  // not implemented yet
 	m_Shared = false;
 	m_DeiconifyOnBell = false;
+  m_UseTemp = false;
 	m_host[0] = '\0';
 	m_port = -1;
 	
@@ -117,8 +119,18 @@ void VNCOptions::SetFromCommandLine(LPTSTR szCmdLine) {
 			m_restricted = true;
 		} else if ( SwitchMatch(args[j], _T("viewonly"))) {
 			m_ViewOnly = true;
-		} else if ( SwitchMatch(args[j], _T("8bit"))) {
-			m_Use8Bit = true;
+		//} else if ( SwitchMatch(args[j], _T("8bit"))) {
+		//	m_Use8Bit = true;
+		} else if ( SwitchMatch(args[j], _T("depth") )) {
+			if (++j == i) {
+				ArgError(_T("No depth specified"));
+				continue;
+			}
+			if (_stscanf(args[j], _T("%d"), &m_PreferredDepth) != 1) {
+				ArgError(_T("Invalid depth specified"));
+				continue;
+			}
+			
 		} else if ( SwitchMatch(args[j], _T("shared"))) {
 			m_Shared = true;
 		} else if ( SwitchMatch(args[j], _T("swapmouse"))) {
@@ -230,8 +242,18 @@ BOOL CALLBACK VNCOptions::OptDlgProc(  HWND hwnd,  UINT uMsg,
 			SendMessage(hDeiconify, BM_SETCHECK, _this->m_DeiconifyOnBell, 0);
 			
 			
-			HWND h8bit = GetDlgItem(hwnd, IDC_8BITCHECK);
-			SendMessage(h8bit, BM_SETCHECK, _this->m_Use8Bit, 0);
+			//HWND h8bit = GetDlgItem(hwnd, IDC_8BITCHECK);
+			//SendMessage(h8bit, BM_SETCHECK, _this->m_Use8Bit, 0);
+			
+			for (int i = 0; i <= IDC_DEPTH32 - IDC_DEPTH_UNSET; i++) {
+			  HWND hDepth = GetDlgItem(hwnd, IDC_DEPTH_UNSET + i);
+			  SendMessage(hDepth, BM_SETCHECK,
+            (i == 0 && _this->m_PreferredDepth == 0) ||
+            (i == 1 && _this->m_PreferredDepth == 8) ||
+            (i == 2 && _this->m_PreferredDepth == 16) ||
+            (i == 3 && _this->m_PreferredDepth == 32), 0);
+				EnableWindow(hDepth, true);
+      }
 			
 			HWND hShared = GetDlgItem(hwnd, IDC_SHARED);
 			SendMessage(hShared, BM_SETCHECK, _this->m_Shared, 0);
@@ -239,6 +261,10 @@ BOOL CALLBACK VNCOptions::OptDlgProc(  HWND hwnd,  UINT uMsg,
 			
 			HWND hViewOnly = GetDlgItem(hwnd, IDC_VIEWONLY);
 			SendMessage(hViewOnly, BM_SETCHECK, _this->m_ViewOnly, 0);
+			
+			HWND hUseTemp = GetDlgItem(hwnd, IDC_USETEMP);
+			SendMessage(hUseTemp, BM_SETCHECK, _this->m_UseTemp, 0);
+			EnableWindow(hUseTemp, !_this->m_running);
 			
 			CentreWindow(hwnd);
 			
@@ -266,9 +292,28 @@ BOOL CALLBACK VNCOptions::OptDlgProc(  HWND hwnd,  UINT uMsg,
 				_this->m_DeiconifyOnBell =
 					(SendMessage(hDeiconify, BM_GETCHECK, 0, 0) == BST_CHECKED);
 				
-				HWND h8bit = GetDlgItem(hwnd, IDC_8BITCHECK);
-				_this->m_Use8Bit =
-					(SendMessage(h8bit, BM_GETCHECK, 0, 0) == BST_CHECKED);
+				for (int i = 0; i <= IDC_DEPTH32-IDC_DEPTH_UNSET; i++) {
+					HWND hDepth = GetDlgItem(hwnd, IDC_DEPTH_UNSET+i);
+					if (SendMessage(hDepth, BM_GETCHECK, 0, 0) == BST_CHECKED)
+            switch(i) {
+              case 1:
+                _this->m_PreferredDepth = 8;
+                break;
+              case 2:
+                _this->m_PreferredDepth = 16;
+                break;
+              case 3:
+                _this->m_PreferredDepth = 32;
+                break;
+              case 0:
+              default:
+                _this->m_PreferredDepth = 0;
+            }
+				}
+				
+				//HWND h8bit = GetDlgItem(hwnd, IDC_8BITCHECK);
+				//_this->m_Use8Bit =
+				//	(SendMessage(h8bit, BM_GETCHECK, 0, 0) == BST_CHECKED);
 				
 				HWND hShared = GetDlgItem(hwnd, IDC_SHARED);
 				_this->m_Shared =
@@ -277,6 +322,10 @@ BOOL CALLBACK VNCOptions::OptDlgProc(  HWND hwnd,  UINT uMsg,
 				HWND hViewOnly = GetDlgItem(hwnd, IDC_VIEWONLY);
 				_this->m_ViewOnly = 
 					(SendMessage(hViewOnly, BM_GETCHECK, 0, 0) == BST_CHECKED);
+				
+				HWND hUseTemp = GetDlgItem(hwnd, IDC_USETEMP);
+				_this->m_UseTemp = 
+					(SendMessage(hUseTemp, BM_GETCHECK, 0, 0) == BST_CHECKED);
 				
 				EndDialog(hwnd, TRUE);
 				

@@ -31,6 +31,8 @@
 #include <commctrl.h>
 #include <stdlib.h>
 
+#include "compat.h"
+
 #else
 
 #include <winsock2.h>

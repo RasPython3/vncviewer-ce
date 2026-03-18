@@ -23,8 +23,9 @@ void ClientConnection::ReadRRERect(rfbFramebufferUpdateRectHeader *pfburh)
         case 8:
             color = COLOR_FROM_PIXEL8_ADDRESS(pcolor); break;
         case 16:
-			color = COLOR_FROM_PIXEL16_ADDRESS(pcolor); break;
+            color = COLOR_FROM_PIXEL16_ADDRESS(pcolor); break;
         case 24:
+            color = COLOR_FROM_PIXEL24_ADDRESS(pcolor); break;
         case 32:
             color = COLOR_FROM_PIXEL32_ADDRESS(pcolor); break;
     }
@@ -52,6 +53,8 @@ void ClientConnection::ReadRRERect(rfbFramebufferUpdateRectHeader *pfburh)
             color = COLOR_FROM_PIXEL8_ADDRESS(p); break;
         case 16:
             color = COLOR_FROM_PIXEL16_ADDRESS(p); break;
+        case 24:
+            color = COLOR_FROM_PIXEL24_ADDRESS(p); break;
         case 32:
             color = COLOR_FROM_PIXEL32_ADDRESS(p); break;
         };

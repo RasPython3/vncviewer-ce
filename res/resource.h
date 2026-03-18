@@ -35,7 +35,15 @@
 #define IDC_VIEWONLY                    1005
 #define IDC_PASSWD_EDIT                 1009
 #define IDC_OPTIONBUTTON                1012
+#if 0
 #define IDC_8BITCHECK                   1013
+#else
+#define IDC_DEPTH_UNSET                 1013
+#define IDC_DEPTH8                      1014
+#define IDC_DEPTH16                     1015
+#define IDC_DEPTH32                     1016
+#endif
+#define IDC_USETEMP                     1017
 #define IDC_RAWRADIO                    1018
 #define IDC_CRECTRADIO                  1019
 #define IDC_RRERADIO                    1020

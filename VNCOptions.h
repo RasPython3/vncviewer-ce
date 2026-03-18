@@ -40,12 +40,14 @@ public:
 
 	// default connection options - can be set through Dialog
 	bool	m_ViewOnly;
-	bool	m_Use8Bit;
+	//bool	m_Use8Bit;
+  int   m_PreferredDepth;
 	int		m_PreferredEncoding;
 	bool	m_SwapMouse;
 	bool    m_Emul3Buttons;  // not implemented yet
 	bool	m_Shared;
 	bool	m_DeiconifyOnBell;
+  bool  m_UseTemp;
 
 	// Keyboard can be specified on command line as 8-digit hex
 	TCHAR	m_kbdname[9];

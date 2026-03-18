@@ -24,7 +24,11 @@
 
 #pragma once
 
+#ifdef _MSC_VER
 #include "res\resource.h"
+#else
+#include "res/resource.h"
+#endif
 #include "VNCviewerApp.h"
 #include "Log.h"
 

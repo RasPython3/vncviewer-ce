@@ -49,8 +49,11 @@ extern "C" {
 
 const rfbPixelFormat vnc8bitFormat = {8, 8, 1, 1, 7,7,3, 0,3,6,0,0};
 const rfbPixelFormat vnc16bitFormat = {16, 16, 1, 1, 63, 31, 31, 0,6,11,0,0};
+const rfbPixelFormat vnc32bitFormat = {32, 24, 1, 1, 255, 255, 255, 0,8,16,0,0};
 
+#ifdef __MINGW32CE__
 static LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
+#endif
 
 // Some handy classes for temporary GDI object selection
 // These select objects when constructed and automatically release them when destructed.
@@ -139,6 +142,8 @@ void ClientConnection::Init(VNCviewerApp *pApp)
 	m_dormant = false;
 	m_hBitmapDC = NULL;
 	m_hBitmap = NULL;
+	m_hTempBitmapDC = NULL;
+	m_hTempBitmap = NULL;
 	m_hPalette = NULL;
 
 	// We take the initial conn options from the application defaults
@@ -204,10 +209,10 @@ void ClientConnection::Run()
         // The rest of the processing continues in run_undetached.
         start_undetached();
 		
-    } __except (ecode = GetExceptionCode( ), 
+    } __except ((ecode = GetExceptionCode( ), 
 		(ecode == VNC_EXC_HOSTNAME) || 
 		(ecode == VNC_EXC_CONNECT) ||
-		(ecode == VNC_EXC_AUTHFAIL) ) {
+		(ecode == VNC_EXC_AUTHFAIL) )) {
         switch (ecode) {
         case VNC_EXC_HOSTNAME:
             MessageBox(NULL, _T("Server address not found"), 
@@ -273,6 +278,10 @@ void ClientConnection::CreateDisplay()
 	// Create a memory DC which we'll use for drawing to
 	// the local framebuffer
 	m_hBitmapDC = CreateCompatibleDC(NULL);
+
+  if (m_opts.m_UseTemp) {
+	  m_hTempBitmapDC = CreateCompatibleDC(NULL);
+  }
 
 #ifndef UNDER_CE
 	// Set a suitable palette up
@@ -447,7 +456,7 @@ void ClientConnection::NegotiateProtocolVersion()
 	// XXX This is a hack.  Under CE we just return to the server the
 	// version number it gives us without parsing it.  
 	// Too much hassle replacing sscanf for now. Fix this!
-#ifdef UNDER_CE
+#if defined(UNDER_CE) && (!defined(_WIN32_WCE) || _WIN32_WCE < 0x0200) 
 	m_majorVersion = rfbProtocolMajorVersion;
 	m_minorVersion = rfbProtocolMinorVersion;
 #else
@@ -667,6 +676,15 @@ void ClientConnection::CreateLocalFramebuffer() {
 
 	if (m_hBitmap == NULL)
 		RaiseException(VNC_EXC_GRAPHICS,0,0,0);
+	
+  if (m_opts.m_UseTemp) {
+    m_hTempBitmap = ::CreateCompatibleBitmap(hdc, 
+		  							m_si.framebufferWidth, 
+			  						m_si.framebufferHeight);
+    if (m_hTempBitmap == NULL)
+		  RaiseException(VNC_EXC_GRAPHICS,0,0,0);
+  }
+
 	// Select this bitmap into the DC with an appropriate palette
 	ObjectSelector b(m_hBitmapDC, m_hBitmap);
 	PaletteSelector p(m_hBitmapDC, m_hPalette);
@@ -687,16 +705,47 @@ void ClientConnection::CreateLocalFramebuffer() {
 	SetBkColor(  m_hBitmapDC, oldbgcol);
 	SetTextColor(m_hBitmapDC, oldtxtcol);
 
+  if (m_opts.m_UseTemp) {
+	  ObjectSelector bt(m_hTempBitmapDC, m_hTempBitmap);
+	  PaletteSelector pt(m_hTempBitmapDC, m_hPalette);
+
+    if (!BitBlt(m_hTempBitmapDC, 0, 0, m_si.framebufferWidth, m_si.framebufferHeight,
+          m_hBitmapDC, 0, 0, SRCCOPY)) {
+		  RaiseException(VNC_EXC_GRAPHICS,0,0,0);
+    }
+  }
+
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
 void ClientConnection::SetupPixelFormat() {
+#if 0
 	// Have we requested a reduction to 8-bit?
     if (m_opts.m_Use8Bit) {		
       
 		log.Print(2, _T("Requesting 8-bit truecolour\n"));  
 		m_myFormat = vnc8bitFormat;
-    
+#else
+    // Any preference for color depth?
+    if (m_opts.m_PreferredDepth > 0) {
+        log.Print(2, _T("Requesting %d-bit truecolour\n"), m_opts.m_PreferredDepth);
+
+        switch (m_opts.m_PreferredDepth) {
+          case 8:
+            m_myFormat = vnc8bitFormat;
+            break;
+          case 16:
+            m_myFormat = vnc16bitFormat;
+            break;
+          case 32:
+            m_myFormat = vnc32bitFormat;
+            break;
+          default:
+            log.Print(0, _T("Invalid bit; using server suggestion\n"));
+		        m_myFormat = m_si.format;
+        }
+#endif
+
 		// We don't support colormaps so we'll ask the server to convert
     } else if (!m_si.format.trueColour) {
         
@@ -773,9 +822,11 @@ void ClientConnection::SetFormatAndEncodings()
     se->type = rfbSetEncodings;
     se->nEncodings = 0;
 
+  int i;
+
 	// Put the preferred encoding first, and change it if the
 	// preferred encoding is not actually usable.
-	for (int i = LASTENCODING; i >= rfbEncodingRaw; i--)
+	for (i = LASTENCODING; i >= rfbEncodingRaw; i--)
 	{
 		if (m_opts.m_PreferredEncoding == i) {
 			if (m_opts.m_UseEnc[i]) {
@@ -1485,15 +1536,33 @@ inline void ClientConnection::DoBlit()
 {
 	if (m_hBitmap == NULL) return;
 	if (!m_running) return;
-	omni_mutex_lock l(m_bitmapdcMutex);
-				
+
+	omni_mutex_lock* l = NULL;
+  HBITMAP hBitmap = NULL;
+  HDC hBitmapDC = NULL;
+  
+  if (!m_opts.m_UseTemp) {
+    l = new omni_mutex_lock(m_bitmapdcMutex);
+    hBitmap = m_hBitmap;
+    hBitmapDC = m_hBitmapDC;
+  } else {
+    l = new omni_mutex_lock(m_tempbitmapdcMutex);
+    hBitmap = m_hTempBitmap;
+    hBitmapDC = m_hTempBitmapDC;
+  }
+
+  if (l == NULL) {
+		RaiseException(VNC_EXC_MEMORY,0,0,0);
+  }
+  
 	PAINTSTRUCT ps;
 	HDC hdc = BeginPaint(m_hwnd, &ps);
 	HPALETTE hOldPal = NULL;
+
 	// Select and realize hPalette
 	PaletteSelector p(hdc, m_hPalette);
 
-	ObjectSelector b(m_hBitmapDC, m_hBitmap);
+	ObjectSelector b(hBitmapDC, hBitmap);
 
 	if (m_opts.m_delay) {
 		// Display the area to be updated for debugging purposes
@@ -1505,7 +1574,7 @@ inline void ClientConnection::DoBlit()
 	
 	if (!BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, 
 		ps.rcPaint.right-ps.rcPaint.left, ps.rcPaint.bottom-ps.rcPaint.top, 
-		m_hBitmapDC, ps.rcPaint.left+m_hScrollPos, ps.rcPaint.top+m_vScrollPos-m_barheight,
+		hBitmapDC, ps.rcPaint.left+m_hScrollPos, ps.rcPaint.top+m_vScrollPos-m_barheight,
 		SRCCOPY)) 
 	{
 		log.Print(0, _T("Blit error %d\n"), GetLastError());
@@ -1514,6 +1583,8 @@ inline void ClientConnection::DoBlit()
 	
 
 	EndPaint(m_hwnd, &ps);
+
+  delete l;
 }
 
 inline void ClientConnection::UpdateScrollbars() 
@@ -1709,7 +1780,15 @@ void ClientConnection::ReadScreenUpdate() {
 	
 	// Find the bounding region of this batch of updates
 	HRGN fullregion = NULL;
-	
+
+  RECT *rects = NULL;
+  if (m_opts.m_UseTemp) {
+    rects = new RECT[sut.nRects];
+    if (rects == NULL) {
+		  RaiseException(VNC_EXC_MEMORY,0,0,0);
+    }
+  }
+
 	for (UINT i=0; i < sut.nRects; i++) {
 		
 		rfbFramebufferUpdateRectHeader surh;
@@ -1738,16 +1817,50 @@ void ClientConnection::ReadScreenUpdate() {
 			break;
 		default:
 			log.Print(0, _T("Unknown encoding %d - not supported!\n"), surh.encoding);
+		  RaiseException(VNC_EXC_GRAPHICS,0,0,0);
 			break;
 		}
 		
 		RECT rect;
-		rect.left   = surh.r.x - m_hScrollPos;
-		rect.top    = surh.r.y - m_vScrollPos + m_barheight;
-		rect.right  = rect.left + surh.r.w;
-		rect.bottom = rect.top  + surh.r.h;
-		InvalidateRect(m_hwnd, &rect, FALSE);
+    if (!m_opts.m_UseTemp) {
+      rect.left   = surh.r.x - m_hScrollPos;
+		  rect.top    = surh.r.y - m_vScrollPos + m_barheight;
+		  rect.right  = rect.left + surh.r.w;
+		  rect.bottom = rect.top  + surh.r.h;
+		  InvalidateRect(m_hwnd, &rect, FALSE);
+    } else {
+      rect.left   = surh.r.x;
+		  rect.top    = surh.r.y;
+		  rect.right  = rect.left + surh.r.w;
+		  rect.bottom = rect.top  + surh.r.h;
+		  memcpy(rects + i, &rect, sizeof(RECT));
+    }
 	}
+
+  if (m_opts.m_UseTemp) {
+	  omni_mutex_lock lt(m_tempbitmapdcMutex);
+
+	  ObjectSelector bt(m_hTempBitmapDC, m_hTempBitmap);
+	  PaletteSelector pt(m_hTempBitmapDC, m_hPalette);
+
+
+    for (UINT i=0; i < sut.nRects; i++) {
+      RECT dispRect;
+	    if (!BitBlt(m_hTempBitmapDC, rects[i].left, rects[i].top, 
+		    rects[i].right-rects[i].left, rects[i].bottom-rects[i].top, 
+		    m_hBitmapDC, rects[i].left, rects[i].top,
+		    SRCCOPY))
+	    {
+		    log.Print(0, _T("Blit error %d\n"), GetLastError());
+		    RaiseException(VNC_EXC_GRAPHICS,0,0,0);
+	    }
+      dispRect.left   = rects[i].left - m_hScrollPos;
+		  dispRect.top    = rects[i].top - m_vScrollPos + m_barheight;
+		  dispRect.right  = rects[i].right;
+		  dispRect.bottom = rects[i].bottom;
+		  InvalidateRect(m_hwnd, &dispRect, FALSE);
+    }
+  }
 }
 
 void ClientConnection::SetDormant(bool newstate)
