@@ -32,4 +32,5 @@ jobs:
     - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
+          name: ${{ steps.build.outputs.exe }}
           path: ${{ steps.build.outputs.exe }}
