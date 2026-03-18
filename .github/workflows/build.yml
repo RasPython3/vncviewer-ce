@@ -1,15 +1,45 @@
 name: Build
 
+# https://github.com/brain-hackers/PyAppLauncher/blob/main/.github/workflows/build.yml
+
 on:
   push:
     branches: "*"
     tags: '*'
-  pull_request:
-    branches: "*"
 
 jobs:
-  build:
+  release:
+    name: Setup release
     runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout
+        if: ${{ github.ref_type }} == "tag" || ${{ github.ref_type }} == "branch" && startsWith(${{ github.ref_name }}, "ci")
+        uses: actions/checkout@v3
+
+      - name: Generate release name
+        id: release_name
+        run: echo "name=${GITHUB_REF/refs\/*s\//}" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.release_name.outputs.name }}
+          release_name: ${{ steps.release_name.outputs.name }}
+          body: ""
+          draft: false
+          prerelease: true
+
+  build:
+    name: Build
+    needs: [release]
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-url: ${{ steps.upload.outputs.artifact-url }}
 
     steps:
     - name: Checkout
@@ -26,11 +56,38 @@ jobs:
         export PATH=$PATH:/opt/cegcc/bin
         VER=$(grep -E '^#define\s+VERSION\s+' version.h | sed -E 's/.+\"(.+)\"/\1/g')
         make
+        echo "ver=${VER}" >> $GITHUB_OUTPUT
         echo "exe=vncviewer-ce-${VER}.exe" >> $GITHUB_OUTPUT
         cp vncviewer.exe vncviewer-ce-${VER}.exe
 
+    - name: Setup release files
+      id: setup_files
+      if: ${{ github.ref_type }} == "tag" || ${{ github.ref_type }} == "branch" && startsWith(${{ github.ref_name }}, "ci")
+      run: |
+        mkdir vncviewer-ce
+        touch vncviewer-ce/index.din
+        cp ${{ steps.build.outputs.exe }} vncviewer-ce/AppMain.exe
+        zip -r vncviewer-ce-${{ steps.build.outputs.ver }}-brain.zip vncviewer-ce
+        echo "brainapp=vncviewer-ce-${{ steps.build.outputs.ver }}-brain.zip" >> $GITHUB_OUTPUT
+
     - name: Upload executable
-      uses: actions/upload-artifact@v4
+      needs: [setup_files]
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-          name: ${{ steps.build.outputs.exe }}
-          path: ${{ steps.build.outputs.exe }}
+        upload_url: ${{ needs.release.outputs.upload_url }}
+        asset_path: ${{ steps.build.outputs.exe }}
+        asset_name: ${{ steps.build.outputs.exe }}
+        asset_content_type: application/vnd.microsoft.portable-executable
+
+    - name: Upload app zip
+      needs: [setup_files]
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release.outputs.upload_url }}
+        asset_path: ${{ steps.setup_files.outputs.brainzpp }}
+        asset_name: ${{ steps.setup_files.outputs.brainzpp }}
+        asset_content_type: application/zip
