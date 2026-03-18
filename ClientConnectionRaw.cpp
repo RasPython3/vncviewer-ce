@@ -1,4 +1,5 @@
 //  Copyright (C) 1997, 1998 Olivetti & Oracle Research Laboratory
+//  Copyright (C) 2025-2026 RasPython3
 //
 //  This file is part of the VNC system.
 //

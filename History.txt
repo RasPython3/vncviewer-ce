@@ -1,7 +1,14 @@
 Windows CE VNC viewer history
 =============================
 
-3.3.2 Initial Release
+0.0.1 Modernized Release
+---------------------
+Add changes to compile with MinGW32 CE port and work with modern VNC servers
+Add color depth preference
+Add some options for lightweight
+
+
+3.3.2 Initial Release (legacy VNC application versioning)
 ---------------------
 Quick port from Win32 version.  Fairly crude replacement of C++ exceptions with SEH - 
 may well be problems with certain destructors not being called..
