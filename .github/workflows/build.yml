@@ -20,10 +20,12 @@ jobs:
 
       - name: Generate release name
         id: release_name
+        if: ${{ success() }}
         run: echo "name=${GITHUB_REF/refs\/*s\//}" >> $GITHUB_OUTPUT
 
       - name: Create release
         id: create_release
+        if: ${{ success() }}
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
