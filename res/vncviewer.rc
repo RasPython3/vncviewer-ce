@@ -304,23 +304,21 @@ END
 // Dialog
 //
 
-IDD_APP_ABOUT DIALOG DISCARDABLE  0, 0, 236, 113
+IDD_APP_ABOUT DIALOG DISCARDABLE  0, 0, 280, 131
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About VNCviewer"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,179,92,50,14
+    DEFPUSHBUTTON   "OK",IDOK,223,110,50,14
     CONTROL         106,IDC_STATIC,"Static",SS_BITMAP | SS_SUNKEN,7,7,81,66
-    LTEXT           "WinCE viewer Version " VERSION,IDC_STATIC,110,7,119,11
-    LTEXT           "by RasPython3",IDC_STATIC,110,46,119,8
-    LTEXT           "For more information see\nhttps://github.com/RasPython3/vncviewer-ce/",
-                    IDC_STATIC,110,66,119,19
-    LTEXT           "Virtual Network Computing from ORL",IDC_STATIC,7,82,144,
-                    10
-    LTEXT           "Copyright 1998, 1999\nThe Olivetti && Oracle\nResearch Laboratory",
-                    IDC_STATIC,110,18,119,26
+    LTEXT           "VNC viewer for WinCE Version " VERSION,IDC_STATIC,110,7,153,9
+    LTEXT           "by RasPython3",IDC_STATIC,110,16,153,8
+    LTEXT           "For more information see\nhttps://github.com/RasPython3/vncviewer-ce",
+                    IDC_STATIC,110,90,153,19
     LTEXT           "Copyright 2025-2026\nRasPython3",
-                    IDC_STATIC,110,44,119,19
+                    IDC_STATIC,110,36,153,19
+    LTEXT           "Copyright 1998, 1999\nThe Olivetti && Oracle\nResearch Laboratory",
+                    IDC_STATIC,110,55,153,26
 END
 
 
@@ -350,9 +348,6 @@ END
 // Version
 //
 
-#define str(x) #x
-#define strver str(MAJOR_VERSION) ", " str(MINOR_VERSION) ", " str(MICRO_VERSION) ", " str(SERIAL_VERSION) "\0"
-
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION MAJOR_VERSION,MINOR_VERSION,MICRO_VERSION,SERIAL_VERSION
  PRODUCTVERSION MAJOR_VERSION,MINOR_VERSION,MICRO_VERSION,SERIAL_VERSION
@@ -370,14 +365,14 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "CompanyName", "ORL\0"
+            VALUE "CompanyName", "RasPython3\0"
             VALUE "FileDescription", "VNC viewer for WinCE\0"
-            VALUE "FileVersion", strver
-            VALUE "InternalName", "vncview\0"
-            VALUE "LegalCopyright", "Copyright ï¿½ 1998\0"
+            VALUE "FileVersion", VERSION "\0"
+            VALUE "InternalName", "vncviewer-ce\0"
+            VALUE "LegalCopyright", "Copyright © 2025-2026 RasPython3\0"
             VALUE "OriginalFilename", "vncview.exe\0"
-            VALUE "ProductName", "ORL vncview\0"
-            VALUE "ProductVersion", strver
+            VALUE "ProductName", "vncviewer-ce\0"
+            VALUE "ProductVersion", VERSION "\0"
         END
     END
     BLOCK "VarFileInfo"
