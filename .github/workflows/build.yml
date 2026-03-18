@@ -15,7 +15,7 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Checkout
-        if: github.ref_type == "tag" || github.ref_type == "branch" && startsWith(github.ref_name, "ci")
+        if: github.ref_type == 'tag' || github.ref_type == 'branch' && startsWith(github.ref_name, 'ci')
         uses: actions/checkout@v3
 
       - name: Generate release name
@@ -62,7 +62,7 @@ jobs:
 
     - name: Setup release files
       id: setup_files
-      if: github.ref_type == "tag" || github.ref_type == "branch" && startsWith(github.ref_name, "ci")
+      if: github.ref_type == 'tag' || github.ref_type == 'branch' && startsWith(github.ref_name, 'ci')
       run: |
         mkdir vncviewer-ce
         touch vncviewer-ce/index.din
@@ -71,7 +71,7 @@ jobs:
         echo "brainapp=vncviewer-ce-${{ steps.build.outputs.ver }}-brain.zip" >> $GITHUB_OUTPUT
 
     - name: Upload executable
-      if: github.ref_type == "tag" || github.ref_type == "branch" && startsWith(github.ref_name, "ci")
+      if: github.ref_type == 'tag' || github.ref_type == 'branch' && startsWith(github.ref_name, 'ci')
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,7 +82,7 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
 
     - name: Upload app zip
-      if: github.ref_type == "tag" || github.ref_type == "branch" && startsWith(github.ref_name, "ci")
+      if: github.ref_type == 'tag' || github.ref_type == 'branch' && startsWith(github.ref_name, 'ci')
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
