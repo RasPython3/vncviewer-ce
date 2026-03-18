@@ -20,12 +20,12 @@ jobs:
 
       - name: Generate release name
         id: release_name
-        if: ${{ success() }}
+        if: github.ref_type == 'tag' || github.ref_type == 'branch' && startsWith(github.ref_name, 'ci')
         run: echo "name=${GITHUB_REF/refs\/*s\//}" >> $GITHUB_OUTPUT
 
       - name: Create release
         id: create_release
-        if: ${{ success() }}
+        if: github.ref_type == 'tag' || github.ref_type == 'branch' && startsWith(github.ref_name, 'ci')
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
